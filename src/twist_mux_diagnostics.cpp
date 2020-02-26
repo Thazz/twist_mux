@@ -25,7 +25,6 @@
 
 namespace twist_mux
 {
-
 TwistMuxDiagnostics::TwistMuxDiagnostics()
 {
   diagnostic_.add("Twist mux status", this, &TwistMuxDiagnostics::diagnostics);
@@ -33,7 +32,8 @@ TwistMuxDiagnostics::TwistMuxDiagnostics()
 }
 
 TwistMuxDiagnostics::~TwistMuxDiagnostics()
-{}
+{
+}
 
 void TwistMuxDiagnostics::update()
 {
@@ -45,11 +45,11 @@ void TwistMuxDiagnostics::updateStatus(const status_type::ConstPtr& status)
   ROS_DEBUG_THROTTLE(1.0, "Updating status.");
 
   status_.velocity_hs = status->velocity_hs;
-  status_.lock_hs     = status->lock_hs;
-  status_.priority    = status->priority;
+  status_.lock_hs = status->lock_hs;
+  status_.priority = status->priority;
 
   status_.main_loop_time = status->main_loop_time;
-  status_.reading_age    = status->reading_age;
+  status_.reading_age = status->reading_age;
 
   update();
 }
@@ -64,32 +64,32 @@ void TwistMuxDiagnostics::diagnostics(diagnostic_updater::DiagnosticStatusWrappe
   else
     stat.summary(OK, "ok");
 
+  std::string priority_topic;
   for (const auto& velocity_h : *status_.velocity_hs)
   {
-    stat.addf("velocity " + velocity_h.getName(),
-              " %s (listening to %s @ %fs with priority #%d)",
-              (velocity_h.isMasked(status_.priority) ? "masked" : "unmasked"),
-              velocity_h.getTopic().c_str(),
-              velocity_h.getTimeout(),
-              static_cast<int>(velocity_h.getPriority()));
+    stat.addf("velocity " + velocity_h.getName(), " %s (listening to %s @ %fs with priority #%d)",
+              (velocity_h.isMasked(status_.priority) ? "masked" : "unmasked"), velocity_h.getTopic().c_str(),
+              velocity_h.getTimeout(), static_cast<int>(velocity_h.getPriority()));
+
+    if (velocity_h.isSelected())
+    {
+      priority_topic = velocity_h.getName();
+    }
   }
 
   for (const auto& lock_h : *status_.lock_hs)
   {
-    stat.addf("lock " + lock_h.getName(),
-              " %s (listening to %s @ %fs with priority #%d)",
-              (lock_h.isLocked() ? "locked" : "free"),
-              lock_h.getTopic().c_str(),
-              lock_h.getTimeout(),
+    stat.addf("lock " + lock_h.getName(), " %s (listening to %s @ %fs with priority #%d)",
+              (lock_h.isLocked() ? "locked" : "free"), lock_h.getTopic().c_str(), lock_h.getTimeout(),
               static_cast<int>(lock_h.getPriority()));
   }
 
   stat.add("current priority", static_cast<int>(status_.priority));
-
   stat.add("loop time in [sec]", status_.main_loop_time);
   stat.add("data age in [sec]", status_.reading_age);
+  stat.add("priority topic", priority_topic);
 
   ROS_DEBUG_THROTTLE(1.0, "Publishing diagnostics.");
 }
 
-} // namespace twist_mux
+}  // namespace twist_mux
